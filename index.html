@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labor-Sicherheits-Quiz</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 5px solid #2196F3;
+        }
+
+        .instructions h2 {
+            color: #2196F3;
+            margin-bottom: 15px;
+        }
+
+        .instructions ul {
+            list-style-type: none;
+        }
+
+        .instructions li {
+            margin: 10px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .instructions li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4CAF50;
+        }
+
+        .quiz-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .image-section {
+            flex: 3;
+            min-width: 600px;
+        }
+
+        .image-wrapper {
+            position: relative;
+            background: #f0f0f0;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            overflow: auto;
+            max-height: 80vh;
+        }
+
+        .lab-image {
+            width: 100%;
+            min-width: 800px;
+            max-width: 1200px;
+            height: auto;
+            border-radius: 10px;
+            cursor: crosshair;
+        }
+
+        .controls-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .symbol-palette {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .symbols {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .symbol {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .symbol.correct {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .symbol.incorrect {
+            background: #f44336;
+            color: white;
+        }
+
+        .symbol.selected {
+            transform: scale(1.2);
+            border: 3px solid #2196F3;
+        }
+
+        .symbol-counter {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #2196F3;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mode-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px solid #2196F3;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-direction: column;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .marker {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10;
+            border: 4px solid white;
+            transform: translate(-50%, -50%);
+            animation: pulse 2s infinite;
+        }
+
+        .marker.correct {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .marker.incorrect {
+            background: #f44336;
+            color: white;
+        }
+
+        .marker.solution-marker {
+            opacity: 0.8;
+            border: 4px solid gold;
+            animation: none;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            white-space: nowrap;
+            z-index: 20;
+            transform: translate(-50%, -100%);
+            pointer-events: none;
+        }
+
+        .text-input-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .text-input-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .marker-indicator {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .marker-indicator.correct {
+            background: #4CAF50;
+        }
+
+        .marker-indicator.incorrect {
+            background: #f44336;
+        }
+
+        .text-input-content {
+            flex: 1;
+        }
+
+        .text-input-field {
+            width: 100%;
+            min-height: 60px;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .remove-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .feedback {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+        }
+
+        .feedback.success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .feedback.partial {
+            background: #ff9800;
+            color: white;
+        }
+
+        .feedback.error {
+            background: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Labor-Sicherheits-Quiz</h1>
+            <p>Erkenne Sicherheitsprobleme und korrektes Verhalten im Chemielabor</p>
+        </div>
+        
+        <div class="content">
+            <div class="instructions">
+                <h2>📋 Anweisungen</h2>
+                <ul>
+                    <li>Wähle zuerst ein Symbol aus (✓ für korrektes, ✗ für falsches Verhalten)</li>
+                    <li>Tippe dann auf die entsprechende Stelle im Bild</li>
+                    <li>Beschreibe deine Beobachtung in dem Textfeld</li>
+                    <li>Klicke auf "Auswertung", um deine Antworten zu überprüfen</li>
+                </ul>
+            </div>
+
+            <div class="quiz-container">
+                <div class="image-section">
+                    <div class="image-wrapper" id="imageWrapper">
+                        <img src="sicherheit1.png" alt="Labor-Sicherheitsbild" class="lab-image" id="labImage">
+                    </div>
+                </div>
+
+                <div class="controls-section">
+                    <div class="symbol-palette">
+                        <h3>🎯 Symbole auswählen</h3>
+                        <div class="symbols">
+                            <div class="symbol correct" data-type="correct">
+                                ✓
+                                <div class="symbol-counter" id="correctCounter">3</div>
+                            </div>
+                            <div class="symbol incorrect" data-type="incorrect">
+                                ✗
+                                <div class="symbol-counter" id="incorrectCounter">9</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mode-info" id="modeInfo">
+                        <strong>Klicke auf ein Symbol, um zu starten!</strong>
+                    </div>
+
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+
+                    <div class="controls">
+                        <button class="btn btn-primary" id="solutionBtn" onclick="showSolution()" disabled>💡 LÖSUNG ANZEIGEN</button>
+                        <button class="btn btn-success" onclick="checkAnswers()">✅ AUSWERTUNG</button>
+                        <button class="btn btn-danger" onclick="resetQuiz()">🔄 ZURÜCKSETZEN</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-input-section" id="textInputSection">
+                <h3>📝 Beschreibe deine Beobachtungen</h3>
+                <div id="textInputs"></div>
+            </div>
+
+            <div class="feedback" id="feedback"></div>
+            
+            <div class="export-controls" style="margin-top: 30px; padding: 25px; background: #f8f9fa; border-radius: 15px; border-top: 3px solid #2196F3;">
+                <h3 style="color: #2196F3; margin-bottom: 20px; text-align: center;">📁 Speichern & Exportieren</h3>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn" style="background: #9c27b0; color: white;" onclick="saveProgress()">💾 ZWISCHENSPEICHERN</button>
+                    <button class="btn" style="background: #607d8b; color: white;" onclick="loadProgress()">📂 LADEN</button>
+                    <button class="btn" style="background: #ff9800; color: white;" onclick="exportToPDF()">📄 PDF EXPORTIEREN</button>
+                </div>
+                <p style="text-align: center; margin-top: 15px; font-size: 0.9em; color: #666;">
+                    Speichere deinen Fortschritt zwischen Stunden oder exportiere das fertige Arbeitsblatt als PDF für die Korrektur.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedSymbol = null;
+        let markers = [];
+        let solutionVisible = false;
+        let correctMarkerCount = 0;
+        let incorrectMarkerCount = 0;
+        let textInputs = {};
+
+        const solutions = {
+            correct: [
+                {x: 12, y: 35, description: "Richtige Geruchsprobe"},
+                {x: 65, y: 45, description: "Schutzbrille aufgesetzt"},
+                {x: 78, y: 42, description: "Schutzbrille aufgesetzt und Laborgerät gesichert"}
+            ],
+            incorrect: [
+                {x: 23, y: 28, description: "Person ohne Schutzbrille"},
+                {x: 35, y: 25, description: "Keine Schutzbrille beim Experimentieren"},
+                {x: 50, y: 28, description: "Ungeschütztes Arbeiten ohne Schutzbrille"},
+                {x: 22, y: 65, description: "Unsichere Körperhaltung/Arbeitsweise"},
+                {x: 45, y: 75, description: "Gefährliche Arbeitshaltung am Boden"},
+                {x: 85, y: 65, description: "Unordentlicher/unsicherer Arbeitsplatz"},
+                {x: 95, y: 38, description: "Person ohne angemessenen Schutz"},
+                {x: 75, y: 78, description: "Unsichere Lagerung/Arbeitsbereich"},
+                {x: 35, y: 82, description: "Rucksack und Glasbruch auf dem Boden - Stolpergefahr"}
+            ]
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+        });
+
+        function initializeEventListeners() {
+            document.querySelectorAll('.symbol').forEach(symbol => {
+                symbol.addEventListener('click', function() {
+                    selectSymbol(this.dataset.type);
+                });
+            });
+
+            document.getElementById('labImage').addEventListener('click', function(e) {
+                if (!selectedSymbol) {
+                    alert('Bitte wähle zuerst ein Symbol aus!');
+                    return;
+                }
+                
+                const rect = this.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                
+                placeMarker(x, y, selectedSymbol);
+            });
+        }
+
+        function selectSymbol(type) {
+            document.querySelectorAll('.symbol').forEach(s => s.classList.remove('selected'));
+            document.querySelector(`[data-type="${type}"]`).classList.add('selected');
+            selectedSymbol = type;
+            updateModeInfo();
+        }
+
+        function updateModeInfo() {
+            const modeInfo = document.getElementById('modeInfo');
+            if (selectedSymbol === 'correct') {
+                modeInfo.innerHTML = '<strong>✓ Modus aktiv:</strong> Markiere korrektes Verhalten';
+                modeInfo.style.borderColor = '#4CAF50';
+                modeInfo.style.backgroundColor = '#e8f5e8';
+            } else if (selectedSymbol === 'incorrect') {
+                modeInfo.innerHTML = '<strong>✗ Modus aktiv:</strong> Markiere Sicherheitsprobleme';
+                modeInfo.style.borderColor = '#f44336';
+                modeInfo.style.backgroundColor = '#ffeaea';
+            }
+        }
+
+        function placeMarker(x, y, type) {
+            if (type === 'correct') {
+                correctMarkerCount++;
+            } else {
+                incorrectMarkerCount++;
+            }
+
+            const markerNumber = type === 'correct' ? correctMarkerCount : incorrectMarkerCount;
+            const markerId = type + '-' + markerNumber;
+            
+            const marker = document.createElement('div');
+            marker.className = 'marker ' + type;
+            marker.innerHTML = markerNumber;
+            marker.style.left = x + '%';
+            marker.style.top = y + '%';
+            marker.dataset.markerId = markerId;
+
+            marker.addEventListener('click', function(e) {
+                e.stopPropagation();
+                removeMarker(this, markerId);
+            });
+
+            marker.addEventListener('mouseenter', function() {
+                showTooltip(x, y, type);
+            });
+
+            marker.addEventListener('mouseleave', function() {
+                removeTooltips();
+            });
+
+            document.getElementById('imageWrapper').appendChild(marker);
+            markers.push({element: marker, x: x, y: y, type: type, number: markerNumber, id: markerId});
+            
+            createTextInput(markerId, type, markerNumber);
+            updateCounters();
+            updateProgress();
+        }
+
+        function createTextInput(markerId, type, markerNumber) {
+            const textInputSection = document.getElementById('textInputSection');
+            const textInputsContainer = document.getElementById('textInputs');
+            
+            textInputSection.style.display = 'block';
+            
+            const inputItem = document.createElement('div');
+            inputItem.className = 'text-input-item';
+            inputItem.dataset.markerId = markerId;
+            
+            const indicator = document.createElement('div');
+            indicator.className = 'marker-indicator ' + type;
+            indicator.innerHTML = markerNumber;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'text-input-content';
+            
+            const label = document.createElement('div');
+            label.style.fontWeight = 'bold';
+            label.style.marginBottom = '8px';
+            label.innerHTML = type === 'correct' 
+                ? 'Beschreibe das korrekte Verhalten (' + markerNumber + '):'
+                : 'Beschreibe das Sicherheitsproblem (' + markerNumber + '):';
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = 'text-input-field';
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.innerHTML = '×';
+            removeBtn.addEventListener('click', function() {
+                removeMarkerByTextInput(markerId);
+            });
+            
+            contentDiv.appendChild(label);
+            contentDiv.appendChild(textarea);
+            inputItem.appendChild(indicator);
+            inputItem.appendChild(contentDiv);
+            inputItem.appendChild(removeBtn);
+            
+            textInputsContainer.appendChild(inputItem);
+            
+            textInputs[markerId] = {
+                element: inputItem,
+                textarea: textarea,
+                type: type,
+                number: markerNumber
+            };
+            
+            setTimeout(function() {
+                textarea.focus();
+            }, 100);
+        }
+
+        function removeMarker(markerElement, markerId) {
+            const index = markers.findIndex(m => m.element === markerElement);
+            if (index !== -1) {
+                const marker = markers[index];
+                
+                markers.splice(index, 1);
+                markerElement.remove();
+                
+                removeTextInput(markerId);
+                
+                if (marker.type === 'correct') {
+                    correctMarkerCount--;
+                } else {
+                    incorrectMarkerCount--;
+                }
+                
+                renumberMarkers(marker.type);
+                updateCounters();
+                updateProgress();
+            }
+        }
+
+        function removeMarkerByTextInput(markerId) {
+            const markerData = markers.find(m => m.id === markerId);
+            if (markerData) {
+                removeMarker(markerData.element, markerId);
+            }
+        }
+
+        function removeTextInput(markerId) {
+            if (textInputs[markerId]) {
+                textInputs[markerId].element.remove();
+                delete textInputs[markerId];
+                
+                if (Object.keys(textInputs).length === 0) {
+                    document.getElementById('textInputSection').style.display = 'none';
+                }
+            }
+        }
+
+        function renumberMarkers(type) {
+            let counter = 1;
+            const markersToUpdate = markers.filter(m => m.type === type);
+            
+            markersToUpdate.forEach(function(marker) {
+                const oldId = marker.id;
+                const newId = type + '-' + counter;
+                
+                marker.number = counter;
+                marker.id = newId;
+                marker.element.innerHTML = counter;
+                marker.element.dataset.markerId = newId;
+                
+                if (textInputs[oldId]) {
+                    const textInputData = textInputs[oldId];
+                    
+                    textInputData.number = counter;
+                    textInputData.element.dataset.markerId = newId;
+                    
+                    const indicator = textInputData.element.querySelector('.marker-indicator');
+                    indicator.innerHTML = counter;
+                    
+                    const label = textInputData.element.querySelector('div');
+                    label.innerHTML = type === 'correct' 
+                        ? 'Beschreibe das korrekte Verhalten (' + counter + '):'
+                        : 'Beschreibe das Sicherheitsproblem (' + counter + '):';
+                    
+                    const removeBtn = textInputData.element.querySelector('.remove-btn');
+                    removeBtn.onclick = function() { removeMarkerByTextInput(newId); };
+                    
+                    textInputs[newId] = textInputData;
+                    delete textInputs[oldId];
+                }
+                
+                counter++;
+            });
+        }
+
+        function showTooltip(x, y, type) {
+            const closestSolution = findClosestSolution(x, y, type);
+            if (closestSolution && isWithinRange(x, y, closestSolution.x, closestSolution.y)) {
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.innerHTML = type === 'correct' ? closestSolution.description : "Sicherheitsproblem erkannt!";
+                tooltip.style.left = x + '%';
+                tooltip.style.top = (y - 8) + '%';
+                
+                document.getElementById('imageWrapper').appendChild(tooltip);
+            }
+        }
+
+        function findClosestSolution(x, y, type) {
+            const solutionSet = solutions[type];
+            let closest = null;
+            let minDistance = Infinity;
+            
+            solutionSet.forEach(function(solution) {
+                const distance = Math.sqrt(Math.pow(solution.x - x, 2) + Math.pow(solution.y - y, 2));
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = solution;
+                }
+            });
+            
+            return closest;
+        }
+
+        function isWithinRange(x1, y1, x2, y2) {
+            const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            return distance <= 15;
+        }
+
+        function removeTooltips() {
+            document.querySelectorAll('.tooltip').forEach(function(tooltip) {
+                tooltip.remove();
+            });
+        }
+
+        function updateCounters() {
+            document.getElementById('correctCounter').textContent = Math.max(0, 3 - correctMarkerCount);
+            document.getElementById('incorrectCounter').textContent = Math.max(0, 9 - incorrectMarkerCount);
+            updateSolutionButtonState();
+        }
+
+        function updateProgress() {
+            const totalPlaced = markers.length;
+            const progress = (totalPlaced / 12) * 100;
+            document.getElementById('progressFill').style.width = Math.min(progress, 100) + '%';
+        }
+
+        function updateSolutionButtonState() {
+            const solutionBtn = document.getElementById('solutionBtn');
+            const allMarkersPlaced = (correctMarkerCount === 3 && incorrectMarkerCount === 9);
+            
+            if (allMarkersPlaced) {
+                solutionBtn.disabled = false;
+                solutionBtn.innerHTML = '💡 LÖSUNG ANZEIGEN';
+                solutionBtn.title = 'Alle Marker gesetzt - Lösung kann angezeigt werden';
+            } else {
+                solutionBtn.disabled = true;
+                const remaining = 12 - markers.length;
+                solutionBtn.innerHTML = `💡 LÖSUNG (${remaining} Marker fehlen)`;
+                solutionBtn.title = `Setze zuerst alle ${12} Marker (3 korrekte + 9 Sicherheitsprobleme)`;
+            }
+        }
+
+        function showSolution() {
+            // Prüfe ob Button aktiviert ist
+            if (document.getElementById('solutionBtn').disabled) {
+                return;
+            }
+            
+            document.querySelectorAll('.solution-marker').forEach(function(marker) {
+                marker.remove();
+            });
+            
+            if (solutionVisible) {
+                solutionVisible = false;
+                return;
+            }
+            
+            solutionVisible = true;
+            
+            Object.keys(solutions).forEach(function(type) {
+                solutions[type].forEach(function(solution) {
+                    const marker = document.createElement('div');
+                    marker.className = 'marker ' + type + ' solution-marker';
+                    marker.innerHTML = type === 'correct' ? '✓' : '✗';
+                    marker.style.left = solution.x + '%';
+                    marker.style.top = solution.y + '%';
+                    
+                    if (type === 'correct') {
+                        marker.addEventListener('mouseenter', function() {
+                            const tooltip = document.createElement('div');
+                            tooltip.className = 'tooltip';
+                            tooltip.innerHTML = solution.description;
+                            tooltip.style.left = solution.x + '%';
+                            tooltip.style.top = (solution.y - 8) + '%';
+                            
+                            document.getElementById('imageWrapper').appendChild(tooltip);
+                        });
+                        
+                        marker.addEventListener('mouseleave', function() {
+                            removeTooltips();
+                        });
+                    }
+                    
+                    document.getElementById('imageWrapper').appendChild(marker);
+                });
+            });
+        }
+
+        function checkAnswers() {
+            let correctAnswers = 0;
+            const totalAnswers = markers.length;
+
+            markers.forEach(function(marker) {
+                const solutionSet = solutions[marker.type];
+                const isCorrect = solutionSet.some(function(solution) {
+                    return isWithinRange(marker.x, marker.y, solution.x, solution.y);
+                });
+                
+                if (isCorrect) {
+                    correctAnswers++;
+                    marker.element.style.border = '4px solid #4CAF50';
+                } else {
+                    marker.element.style.border = '4px solid #f44336';
+                }
+            });
+
+            showFeedback(correctAnswers, totalAnswers);
+        }
+
+        function showFeedback(correct, total) {
+            const feedback = document.getElementById('feedback');
+            const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
+            
+            feedback.style.display = 'block';
+            
+            if (percentage >= 80) {
+                feedback.className = 'feedback success';
+                feedback.innerHTML = '🎉 Ausgezeichnet! ' + correct + ' von ' + total + ' Markierungen sind korrekt (' + percentage + '%). Du kennst die Laborsicherheit sehr gut!';
+            } else if (percentage >= 60) {
+                feedback.className = 'feedback partial';
+                feedback.innerHTML = '👍 Gut gemacht! ' + correct + ' von ' + total + ' Markierungen sind korrekt (' + percentage + '%). Mit etwas Übung wird es noch besser!';
+            } else {
+                feedback.className = 'feedback error';
+                feedback.innerHTML = '📚 Noch nicht ganz richtig. ' + correct + ' von ' + total + ' Markierungen sind korrekt (' + percentage + '%). Schau dir die Sicherheitsregeln nochmal an!';
+            }
+        }
+
+        function resetQuiz() {
+            markers.forEach(function(marker) {
+                marker.element.remove();
+            });
+            markers = [];
+            
+            correctMarkerCount = 0;
+            incorrectMarkerCount = 0;
+            
+            Object.keys(textInputs).forEach(function(markerId) {
+                textInputs[markerId].element.remove();
+            });
+            textInputs = {};
+            document.getElementById('textInputSection').style.display = 'none';
+            
+            document.querySelectorAll('.solution-marker').forEach(function(marker) {
+                marker.remove();
+            });
+            removeTooltips();
+            
+            document.querySelectorAll('.symbol').forEach(function(s) {
+                s.classList.remove('selected');
+            });
+            selectedSymbol = null;
+            solutionVisible = false;
+            
+            updateCounters();
+            updateProgress();
+            updateSolutionButtonState();
+            
+            document.getElementById('modeInfo').innerHTML = '<strong>Klicke auf ein Symbol, um zu starten!</strong>';
+            document.getElementById('modeInfo').style.borderColor = '#2196F3';
+            document.getElementById('modeInfo').style.backgroundColor = '#e3f2fd';
+            document.getElementById('feedback').style.display = 'none';
+        }
+
+        function saveProgress() {
+            try {
+                const progressData = {
+                    markers: markers.map(m => ({
+                        x: m.x,
+                        y: m.y,
+                        type: m.type,
+                        number: m.number,
+                        id: m.id
+                    })),
+                    textInputs: {},
+                    correctMarkerCount: correctMarkerCount,
+                    incorrectMarkerCount: incorrectMarkerCount,
+                    timestamp: new Date().toISOString()
+                };
+
+                // Sammle Texteingaben
+                Object.keys(textInputs).forEach(markerId => {
+                    progressData.textInputs[markerId] = {
+                        text: textInputs[markerId].textarea.value,
+                        type: textInputs[markerId].type,
+                        number: textInputs[markerId].number
+                    };
+                });
+
+                const jsonString = JSON.stringify(progressData, null, 2);
+                
+                // Versuche localStorage (funktioniert nur lokal, nicht in Claude.ai)
+                if (typeof Storage !== "undefined") {
+                    localStorage.setItem('labor_quiz_progress', jsonString);
+                    alert('✅ Fortschritt gespeichert!\n\nHinweis: In Claude.ai funktioniert die Speicherung nicht dauerhaft. Lade die HTML-Datei herunter und verwende sie lokal für persistente Speicherung.');
+                } else {
+                    // Fallback: Download als JSON-Datei
+                    downloadJSON(jsonString, 'labor_quiz_fortschritt.json');
+                }
+            } catch (error) {
+                // Fallback: Download als JSON-Datei
+                const progressData = {
+                    markers: markers.map(m => ({
+                        x: m.x,
+                        y: m.y,
+                        type: m.type,
+                        number: m.number,
+                        id: m.id
+                    })),
+                    textInputs: {},
+                    correctMarkerCount: correctMarkerCount,
+                    incorrectMarkerCount: incorrectMarkerCount,
+                    timestamp: new Date().toISOString()
+                };
+
+                Object.keys(textInputs).forEach(markerId => {
+                    progressData.textInputs[markerId] = {
+                        text: textInputs[markerId].textarea.value,
+                        type: textInputs[markerId].type,
+                        number: textInputs[markerId].number
+                    };
+                });
+
+                downloadJSON(JSON.stringify(progressData, null, 2), 'labor_quiz_fortschritt.json');
+            }
+        }
+
+        function loadProgress() {
+            try {
+                let jsonString = null;
+                
+                // Versuche localStorage
+                if (typeof Storage !== "undefined") {
+                    jsonString = localStorage.getItem('labor_quiz_progress');
+                }
+                
+                if (jsonString) {
+                    const progressData = JSON.parse(jsonString);
+                    restoreProgress(progressData);
+                    alert('✅ Fortschritt geladen vom ' + new Date(progressData.timestamp).toLocaleString());
+                } else {
+                    // Fallback: Datei-Upload
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = function(e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                try {
+                                    const progressData = JSON.parse(e.target.result);
+                                    restoreProgress(progressData);
+                                    alert('✅ Fortschritt aus Datei geladen!');
+                                } catch (error) {
+                                    alert('❌ Fehler beim Laden der Datei: ' + error.message);
+                                }
+                            };
+                            reader.readAsText(file);
+                        }
+                    };
+                    input.click();
+                }
+            } catch (error) {
+                alert('❌ Fehler beim Laden: ' + error.message);
+            }
+        }
+
+        function restoreProgress(progressData) {
+            // Reset current state
+            resetQuiz();
+            
+            // Restore counters
+            correctMarkerCount = progressData.correctMarkerCount || 0;
+            incorrectMarkerCount = progressData.incorrectMarkerCount || 0;
+            
+            // Restore markers
+            progressData.markers.forEach(markerData => {
+                const marker = document.createElement('div');
+                marker.className = 'marker ' + markerData.type;
+                marker.innerHTML = markerData.number;
+                marker.style.left = markerData.x + '%';
+                marker.style.top = markerData.y + '%';
+                marker.dataset.markerId = markerData.id;
+
+                marker.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    removeMarker(this, markerData.id);
+                });
+
+                marker.addEventListener('mouseenter', function() {
+                    showTooltip(markerData.x, markerData.y, markerData.type);
+                });
+
+                marker.addEventListener('mouseleave', function() {
+                    removeTooltips();
+                });
+
+                document.getElementById('imageWrapper').appendChild(marker);
+                markers.push({
+                    element: marker, 
+                    x: markerData.x, 
+                    y: markerData.y, 
+                    type: markerData.type, 
+                    number: markerData.number, 
+                    id: markerData.id
+                });
+
+                // Restore text input
+                createTextInput(markerData.id, markerData.type, markerData.number);
+                
+                // Restore text content
+                if (progressData.textInputs[markerData.id]) {
+                    textInputs[markerData.id].textarea.value = progressData.textInputs[markerData.id].text;
+                }
+            });
+            
+            updateCounters();
+            updateProgress();
+        }
+
+        function downloadJSON(jsonString, filename) {
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('📁 Fortschritt als JSON-Datei heruntergeladen!\n\nLade diese Datei über "LADEN" wieder hoch, um fortzusetzen.');
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            // Header
+            pdf.setFontSize(20);
+            pdf.setTextColor(33, 150, 243);
+            pdf.text('Labor-Sicherheits-Quiz - Ergebnisse', 20, 25);
+            
+            // Datum
+            pdf.setFontSize(12);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text('Erstellt am: ' + new Date().toLocaleString('de-DE'), 20, 35);
+            
+            let yPosition = 50;
+            
+            // Zusammenfassung
+            pdf.setFontSize(14);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text('Zusammenfassung:', 20, yPosition);
+            yPosition += 10;
+            
+            pdf.setFontSize(11);
+            pdf.text('• Korrekte Verhaltensweisen markiert: ' + correctMarkerCount, 25, yPosition);
+            yPosition += 8;
+            pdf.text('• Sicherheitsprobleme markiert: ' + incorrectMarkerCount, 25, yPosition);
+            yPosition += 8;
+            pdf.text('• Gesamt markierte Stellen: ' + markers.length, 25, yPosition);
+            yPosition += 15;
+            
+            // Detaillierte Beschreibungen
+            pdf.setFontSize(14);
+            pdf.text('Detaillierte Beschreibungen:', 20, yPosition);
+            yPosition += 10;
+            
+            // Korrekte Verhaltensweisen
+            if (correctMarkerCount > 0) {
+                pdf.setFontSize(12);
+                pdf.setTextColor(76, 175, 80);
+                pdf.text('✓ Korrekte Verhaltensweisen:', 20, yPosition);
+                yPosition += 8;
+                
+                markers.filter(m => m.type === 'correct').forEach((marker, index) => {
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(0, 0, 0);
+                    
+                    const textInput = textInputs[marker.id];
+                    const description = textInput ? textInput.textarea.value : 'Keine Beschreibung eingegeben';
+                    
+                    pdf.text(marker.number + '. ' + description, 25, yPosition);
+                    yPosition += 8;
+                    
+                    // Seitenwechsel wenn nötig
+                    if (yPosition > 270) {
+                        pdf.addPage();
+                        yPosition = 20;
+                    }
+                });
+                yPosition += 5;
+            }
+            
+            // Sicherheitsprobleme
+            if (incorrectMarkerCount > 0) {
+                pdf.setFontSize(12);
+                pdf.setTextColor(244, 67, 54);
+                pdf.text('✗ Identifizierte Sicherheitsprobleme:', 20, yPosition);
+                yPosition += 8;
+                
+                markers.filter(m => m.type === 'incorrect').forEach((marker, index) => {
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(0, 0, 0);
+                    
+                    const textInput = textInputs[marker.id];
+                    const description = textInput ? textInput.textarea.value : 'Keine Beschreibung eingegeben';
+                    
+                    pdf.text(marker.number + '. ' + description, 25, yPosition);
+                    yPosition += 8;
+                    
+                    // Seitenwechsel wenn nötig
+                    if (yPosition > 270) {
+                        pdf.addPage();
+                        yPosition = 20;
+                    }
+                });
+            }
+            
+            // Footer auf letzter Seite
+            const pageCount = pdf.internal.getNumberOfPages();
+            pdf.setPage(pageCount);
+            pdf.setFontSize(8);
+            pdf.setTextColor(150, 150, 150);
+            pdf.text('Erstellt mit Labor-Sicherheits-Quiz', 20, 285);
+            
+            // PDF speichern
+            const filename = 'Labor_Sicherheits_Quiz_' + new Date().toISOString().slice(0, 10) + '.pdf';
+            pdf.save(filename);
+            
+            alert('📄 PDF-Export erfolgreich!\n\nDie PDF-Datei wurde heruntergeladen und kann zur Korrektur hochgeladen werden.');
+        }
+    </script>
+</body>
+</html>
